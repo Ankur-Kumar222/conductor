@@ -8,6 +8,9 @@ export function getUserId(): string | null {
 export function setUserId(id: string) {
   localStorage.setItem(USER_KEY, id);
 }
+export function clearUserId() {
+  localStorage.removeItem(USER_KEY);
+}
 
 function headers(): HeadersInit {
   const h: Record<string, string> = { "Content-Type": "application/json" };
@@ -29,6 +32,18 @@ export const api = {
 
   async me(): Promise<Me> {
     return json<Me>(await fetch("/api/v1/auth/me", { headers: headers(), credentials: "include" }));
+  },
+
+  async logout(): Promise<void> {
+    try {
+      await fetch("/api/v1/auth/logout", {
+        method: "POST",
+        headers: headers(),
+        credentials: "include",
+      });
+    } finally {
+      clearUserId();
+    }
   },
 
   async syncStatus(): Promise<SyncStatus> {

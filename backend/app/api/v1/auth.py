@@ -106,6 +106,14 @@ def _success_page(email: str | None, user_id: str) -> str:
     </div></body></html>"""
 
 
+@router.post("/logout")
+async def logout(response: Response) -> dict:
+    """Clear the local session cookie. The frontend also clears its stored user id.
+    Google authorization itself is not revoked; reconnecting shows the account chooser."""
+    response.delete_cookie(USER_COOKIE)
+    return {"ok": True}
+
+
 @router.get("/me")
 async def me(user: User = Depends(get_current_user)) -> dict:
     return {

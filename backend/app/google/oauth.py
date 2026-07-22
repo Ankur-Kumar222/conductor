@@ -64,7 +64,8 @@ def authorization_url() -> tuple[str, str, str]:
     auth_url, state = flow.authorization_url(
         access_type="offline",
         include_granted_scopes="true",
-        prompt="consent",
+        # show the account chooser so a user can switch/add a different Google account
+        prompt="select_account consent",
     )
     return auth_url, state, flow.code_verifier
 

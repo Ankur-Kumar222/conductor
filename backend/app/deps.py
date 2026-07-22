@@ -9,7 +9,6 @@ from __future__ import annotations
 import uuid
 
 from fastapi import Cookie, Depends, Header, HTTPException, Query
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
@@ -25,18 +24,13 @@ async def get_current_user(
     user_id: str | None = Query(default=None),
 ) -> User:
     raw = user_id or x_user_id or conductor_user
-    user: User | None = None
-    if raw:
-        try:
-            uid = uuid.UUID(raw)
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail="Invalid user id") from exc
-        user = await session.get(User, uid)
+    if not raw:
+        raise HTTPException(status_code=401, detail="Not authenticated. Visit /api/v1/auth/google")
+    try:
+        uid = uuid.UUID(raw)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid user id") from exc
+    user = await session.get(User, uid)
     if user is None:
-        # fallback: most recent connected user
-        user = (
-            await session.execute(select(User).order_by(User.created_at.desc()).limit(1))
-        ).scalar_one_or_none()
-    if user is None:
-        raise HTTPException(status_code=401, detail="No connected Google account. Visit /api/v1/auth/google")
+        raise HTTPException(status_code=401, detail="Unknown user. Reconnect at /api/v1/auth/google")
     return user

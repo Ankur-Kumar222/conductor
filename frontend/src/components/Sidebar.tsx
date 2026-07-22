@@ -24,12 +24,14 @@ export function Sidebar({
   syncing,
   onSync,
   onSample,
+  onLogout,
 }: {
   me: Me | null;
   sync: SyncStatus | null;
   syncing: boolean;
   onSync: () => void;
   onSample: (q: string) => void;
+  onLogout: () => void;
 }) {
   const connected = me?.connected;
   const services = [
@@ -55,8 +57,17 @@ export function Sidebar({
       <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3">
         {connected ? (
           <>
-            <div className="text-[11px] uppercase tracking-wide text-slate-500">Connected</div>
+            <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-slate-500">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              Connected
+            </div>
             <div className="mt-1 truncate text-sm text-slate-200">{me?.email}</div>
+            <button
+              onClick={onLogout}
+              className="mt-2 w-full rounded-lg border border-slate-700 px-3 py-1.5 text-center text-xs font-medium text-slate-300 hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-300"
+            >
+              Log out / switch account
+            </button>
           </>
         ) : (
           <>

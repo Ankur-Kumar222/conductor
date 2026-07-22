@@ -4,6 +4,7 @@ import type { Me, QueryResponse, SyncStatus } from "./types";
 import { Sidebar } from "./components/Sidebar";
 import { StepBadges } from "./components/StepBadges";
 import { PendingActionCard } from "./components/PendingActionCard";
+import { Login } from "./components/Login";
 
 interface Turn {
   role: "user" | "assistant";
@@ -19,6 +20,7 @@ export default function App() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,9 +29,10 @@ export default function App() {
       .then((m) => {
         setMe(m);
         if (m.id) setUserId(m.id);
+        api.syncStatus().then(setSync).catch(() => {});
       })
-      .catch(() => setMe(null));
-    api.syncStatus().then(setSync).catch(() => {});
+      .catch(() => setMe(null))
+      .finally(() => setAuthChecked(true));
   }, []);
 
   useEffect(() => {
@@ -71,6 +74,14 @@ export default function App() {
     }
   };
 
+  const onLogout = async () => {
+    await api.logout();
+    setMe(null);
+    setSync(null);
+    setTurns([]);
+    setConversationId(null);
+  };
+
   const onConfirm = async (id: string) => {
     await api.confirm(id);
   };
@@ -78,9 +89,26 @@ export default function App() {
     await api.cancel(id);
   };
 
+  if (!authChecked) {
+    return (
+      <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading…</div>
+    );
+  }
+
+  if (!me?.connected) {
+    return <Login />;
+  }
+
   return (
     <div className="flex h-full">
-      <Sidebar me={me} sync={sync} syncing={syncing} onSync={doSync} onSample={send} />
+      <Sidebar
+        me={me}
+        sync={sync}
+        syncing={syncing}
+        onSync={doSync}
+        onSample={send}
+        onLogout={onLogout}
+      />
 
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-slate-800/60 px-6 py-3">
