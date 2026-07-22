@@ -5,8 +5,9 @@ This document explains how Conductor is built and how it scales from a single-us
 ## 1. Request lifecycle
 
 ```
-POST /api/v1/query {query, conversation_id?}
-  1. Load conversation context   (last 5 turns for this user → resolves "that email")
+POST /api/v1/query {query, chat_id?}
+  0. Resolve/create chat thread  (chats + messages; auto-title new chats from the first query)
+  1. Load chat context          (recent messages in this thread → resolves "that email")
   2. Intent classification       (GPT-5 structured → Intent{services, intent, entities, needs_clarification})
        └─ if ambiguous → return clarification question, stop
   3. Query planning              (GPT-5 structured → Plan{steps[]}), given current time + timezone

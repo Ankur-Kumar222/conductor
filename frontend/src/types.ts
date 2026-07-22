@@ -35,7 +35,8 @@ export interface PendingConfirmation {
 }
 
 export interface QueryResponse {
-  conversation_id: string;
+  chat_id: string;
+  message_id: string;
   query: string;
   intent: Intent | null;
   response: string;
@@ -43,6 +44,37 @@ export interface QueryResponse {
   steps: StepResult[];
   pending_confirmations: PendingConfirmation[];
   results: Record<string, unknown>;
+}
+
+export interface ChatSummary {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+}
+
+export interface MessageMeta {
+  intent?: Intent | null;
+  steps?: StepResult[];
+  actions_taken?: ActionTaken[];
+  pending_confirmations?: PendingConfirmation[];
+}
+
+export interface MessageOut {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  meta: MessageMeta | null;
+  created_at: string;
+}
+
+export interface ChatDetail {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  messages: MessageOut[];
 }
 
 export interface Me {

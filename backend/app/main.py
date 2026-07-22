@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import actions, auth, query, sync
+from app.api.v1 import actions, auth, chats, query, sync
 from app.config import settings
 
 app = FastAPI(
@@ -31,3 +31,4 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(sync.router, prefix="/api/v1")
 app.include_router(query.router, prefix="/api/v1")
 app.include_router(actions.router, prefix="/api/v1")
+app.include_router(chats.router, prefix="/api/v1")

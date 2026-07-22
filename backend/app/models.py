@@ -31,20 +31,46 @@ class User(Base):
     timezone: Mapped[str] = mapped_column(String(64), default="UTC")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    conversations: Mapped[list["Conversation"]] = relationship(back_populates="user")
+    chats: Mapped[list["Chat"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
-class Conversation(Base):
-    __tablename__ = "conversations"
+class Chat(Base):
+    """A conversation thread (like a ChatGPT/Claude chat) grouping many messages."""
+
+    __tablename__ = "chats"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    query: Mapped[str] = mapped_column(Text)
-    intent: Mapped[dict | None] = mapped_column(JSONB)
-    response: Mapped[str | None] = mapped_column(Text)
+    title: Mapped[str] = mapped_column(String(200), default="New chat")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    user: Mapped[User] = relationship(back_populates="chats")
+    messages: Mapped[list["Message"]] = relationship(
+        back_populates="chat", cascade="all, delete-orphan", order_by="Message.created_at"
+    )
+
+
+class Message(Base):
+    """A single turn in a chat. role is 'user' or 'assistant'.
+
+    For assistant messages, `meta` carries the structured intent, executed steps,
+    actions taken, and any pending confirmations so a chat can be re-rendered later.
+    """
+
+    __tablename__ = "messages"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    chat_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("chats.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    role: Mapped[str] = mapped_column(String(16))
+    content: Mapped[str] = mapped_column(Text)
+    meta: Mapped[dict | None] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    user: Mapped[User] = relationship(back_populates="conversations")
+    chat: Mapped[Chat] = relationship(back_populates="messages")
 
 
 class GmailCache(Base):

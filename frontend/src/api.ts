@@ -1,4 +1,4 @@
-import type { Me, QueryResponse, SyncStatus } from "./types";
+import type { ChatDetail, ChatSummary, Me, QueryResponse, SyncStatus } from "./types";
 
 const USER_KEY = "conductor_user_id";
 
@@ -63,15 +63,35 @@ export const api = {
     );
   },
 
-  async query(q: string, conversationId: string | null): Promise<QueryResponse> {
+  async query(q: string, chatId: string | null): Promise<QueryResponse> {
     return json<QueryResponse>(
       await fetch("/api/v1/query", {
         method: "POST",
         headers: headers(),
         credentials: "include",
-        body: JSON.stringify({ query: q, conversation_id: conversationId }),
+        body: JSON.stringify({ query: q, chat_id: chatId }),
       }),
     );
+  },
+
+  async listChats(): Promise<ChatSummary[]> {
+    return json<ChatSummary[]>(
+      await fetch("/api/v1/chats", { headers: headers(), credentials: "include" }),
+    );
+  },
+
+  async getChat(chatId: string): Promise<ChatDetail> {
+    return json<ChatDetail>(
+      await fetch(`/api/v1/chats/${chatId}`, { headers: headers(), credentials: "include" }),
+    );
+  },
+
+  async deleteChat(chatId: string): Promise<void> {
+    await fetch(`/api/v1/chats/${chatId}`, {
+      method: "DELETE",
+      headers: headers(),
+      credentials: "include",
+    });
   },
 
   async confirm(actionId: string): Promise<unknown> {

@@ -34,11 +34,20 @@ per-service counts. Also auto-detects the user's timezone from Calendar.
 ### `GET /api/v1/sync/status`
 Per-service `{last_synced_at, status, item_count, error}`.
 
+### Chat threads
+- `GET /api/v1/chats` → list the user's chats `[{id, title, created_at, updated_at, message_count}]` (newest first).
+- `POST /api/v1/chats` `{title?}` → create an empty chat.
+- `GET /api/v1/chats/{chat_id}` → chat + ordered `messages[]` (`{id, role, content, meta, created_at}`; assistant `meta` holds intent/steps/actions/pending for re-render).
+- `DELETE /api/v1/chats/{chat_id}` → delete a chat and its messages.
+
 ### `POST /api/v1/query`  ⟵ the main endpoint
-Body: `{"query": "...", "conversation_id": "..."?}`.
+Body: `{"query": "...", "chat_id": "..."?}`. Omit `chat_id` to start a new chat (auto-titled from the
+first query); pass it to continue an existing thread with its context. The response echoes `chat_id`
+and the new `message_id`.
 ```json
 {
-  "conversation_id": "…",
+  "chat_id": "…",
+  "message_id": "…",
   "query": "Prepare for tomorrow's meeting with Acme Corp",
   "intent": {"services": ["gcal","gmail","drive"], "intent": "prepare_meeting",
              "entities": [{"name":"company","value":"Acme Corp"}],

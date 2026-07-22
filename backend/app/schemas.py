@@ -94,7 +94,31 @@ class SynthesizedResponse(BaseModel):
 # ---- API request/response ----------------------------------------------------
 class QueryRequest(BaseModel):
     query: str
-    conversation_id: str | None = None
+    chat_id: str | None = None
+
+
+class ChatSummary(BaseModel):
+    id: str
+    title: str
+    created_at: str
+    updated_at: str
+    message_count: int = 0
+
+
+class MessageOut(BaseModel):
+    id: str
+    role: str
+    content: str
+    meta: dict | None = None
+    created_at: str
+
+
+class ChatDetail(BaseModel):
+    id: str
+    title: str
+    created_at: str
+    updated_at: str
+    messages: list[MessageOut] = []
 
 
 class StepResult(BaseModel):
@@ -115,7 +139,8 @@ class PendingConfirmation(BaseModel):
 
 
 class QueryResponse(BaseModel):
-    conversation_id: str
+    chat_id: str
+    message_id: str = ""
     query: str
     intent: Intent | None = None
     response: str

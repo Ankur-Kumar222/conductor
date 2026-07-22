@@ -22,6 +22,6 @@ async def run_query(
 ) -> QueryResponse:
     return await pipeline.run_query(
         session, user, payload.query,
-        conversation_id=payload.conversation_id,
+        chat_id=payload.chat_id,
         write_handler=write_handler,
     )

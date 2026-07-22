@@ -5,7 +5,8 @@ HNSW cosine index. Migrations live in `backend/migrations/` (Alembic).
 
 ```mermaid
 erDiagram
-    users ||--o{ conversations : has
+    users ||--o{ chats : has
+    chats ||--o{ messages : contains
     users ||--o{ gmail_cache : owns
     users ||--o{ gcal_cache : owns
     users ||--o{ gdrive_cache : owns
@@ -22,12 +23,20 @@ erDiagram
         string timezone
         timestamptz created_at
     }
-    conversations {
+    chats {
         uuid id PK
         uuid user_id FK
-        text query
-        jsonb intent
-        text response
+        string title
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    messages {
+        uuid id PK
+        uuid chat_id FK
+        uuid user_id
+        string role "user|assistant"
+        text content
+        jsonb meta "intent, steps, actions, pending (assistant)"
         timestamptz created_at
     }
     gmail_cache {
