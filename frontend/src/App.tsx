@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { Send, Sparkles } from "lucide-react";
 import { api, setUserId } from "./api";
 import type { ChatSummary, Me, PendingConfirmation, StepResult, SyncStatus } from "./types";
 import { Sidebar } from "./components/Sidebar";
 import { StepBadges } from "./components/StepBadges";
 import { PendingActionCard } from "./components/PendingActionCard";
 import { Login } from "./components/Login";
-import { Toaster, type Toast } from "./components/Toaster";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 interface Turn {
   role: "user" | "assistant";
@@ -32,30 +36,7 @@ export default function App() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const toastId = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  const dismissToast = (id: number) => setToasts((ts) => ts.filter((t) => t.id !== id));
-  const pushToast = (message: string, tone: Toast["tone"] = "default") => {
-    const id = ++toastId.current;
-    setToasts((ts) => [...ts, { id, message, tone }]);
-    setTimeout(() => dismissToast(id), 3500);
-  };
-  const pushConfirm = (message: string, onConfirm: () => void) => {
-    const id = ++toastId.current;
-    setToasts((ts) => [
-      ...ts,
-      {
-        id,
-        message,
-        actions: [
-          { label: "Cancel", onClick: () => {}, tone: "default" },
-          { label: "Delete", onClick: onConfirm, tone: "danger" },
-        ],
-      },
-    ]);
-  };
 
   useEffect(() => {
     api
@@ -79,12 +60,14 @@ export default function App() {
 
   const doSync = async () => {
     setSyncing(true);
+    toast("Syncing your Workspace…", { description: "Indexing Gmail, Calendar & Drive." });
     try {
       await api.triggerSync();
       for (let i = 0; i < 12; i++) {
         await new Promise((r) => setTimeout(r, 2500));
         await refreshSync();
       }
+      toast.success("Sync complete");
     } finally {
       setSyncing(false);
     }
@@ -110,14 +93,18 @@ export default function App() {
         })),
       );
     } catch {
-      /* ignore */
+      toast.error("Couldn't open chat");
     }
   };
 
   const requestDeleteChat = (id: string) => {
     const title = chats.find((c) => c.id === id)?.title || "this chat";
-    const shortTitle = title.length > 34 ? title.slice(0, 34) + "…" : title;
-    pushConfirm(`Delete "${shortTitle}"? This can't be undone.`, () => doDeleteChat(id));
+    const short = title.length > 40 ? title.slice(0, 40) + "…" : title;
+    toast("Delete chat?", {
+      description: `"${short}" — this can't be undone.`,
+      action: { label: "Delete", onClick: () => doDeleteChat(id) },
+      cancel: { label: "Cancel", onClick: () => {} },
+    });
   };
 
   const doDeleteChat = async (id: string) => {
@@ -125,9 +112,9 @@ export default function App() {
       await api.deleteChat(id);
       if (id === currentChatId) newChat();
       refreshChats();
-      pushToast("Chat deleted", "success");
+      toast.success("Chat deleted");
     } catch {
-      pushToast("Couldn't delete chat", "error");
+      toast.error("Couldn't delete chat");
     }
   };
 
@@ -146,7 +133,8 @@ export default function App() {
       ]);
       refreshChats();
     } catch (e) {
-      setTurns((t) => [...t, { role: "assistant", text: `Something went wrong: ${(e as Error).message}` }]);
+      toast.error("Query failed", { description: (e as Error).message });
+      setTurns((t) => [...t, { role: "assistant", text: "Sorry — something went wrong with that request." }]);
     } finally {
       setBusy(false);
     }
@@ -162,15 +150,16 @@ export default function App() {
   };
 
   if (!authChecked) {
-    return <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading…</div>;
+    return <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading…</div>;
   }
   if (!me?.connected) {
     return <Login />;
   }
 
+  const activeTitle = chats.find((c) => c.id === currentChatId)?.title || "New chat";
+
   return (
-    <div className="flex h-full">
-      <Toaster toasts={toasts} onDismiss={dismissToast} />
+    <div className="flex h-full bg-background">
       <Sidebar
         me={me}
         sync={sync}
@@ -185,29 +174,28 @@ export default function App() {
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-slate-800/60 px-6 py-3">
-          <div className="truncate text-sm font-medium text-slate-300">
-            {chats.find((c) => c.id === currentChatId)?.title || "New chat"}
-          </div>
-          <div className="text-[11px] text-slate-500">GPT-5 · pgvector · Gmail / Calendar / Drive</div>
+        <header className="flex h-14 items-center border-b px-6">
+          <div className="truncate text-sm font-medium">{activeTitle}</div>
         </header>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="mx-auto flex max-w-3xl flex-col gap-5">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto">
+          <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-8">
             {turns.length === 0 && (
-              <div className="mt-16 text-center text-slate-500">
-                <div className="mb-2 text-2xl">🎼</div>
-                <div className="text-lg font-medium text-slate-300">Ask across your Workspace</div>
-                <p className="mx-auto mt-2 max-w-md text-sm">
+              <div className="mt-14 flex flex-col items-center text-center">
+                <div className="flex size-11 items-center justify-center rounded-2xl border bg-muted/40">
+                  <Sparkles className="size-5 text-muted-foreground" />
+                </div>
+                <h2 className="mt-4 text-lg font-semibold tracking-tight">Ask across your Workspace</h2>
+                <p className="mt-1.5 max-w-md text-sm text-muted-foreground">
                   Conductor classifies your intent, plans a multi-service execution graph, runs Gmail,
                   Calendar &amp; Drive in parallel, and synthesizes one answer.
                 </p>
-                <div className="mx-auto mt-6 flex max-w-md flex-col gap-2">
+                <div className="mt-6 flex w-full max-w-md flex-col gap-2">
                   {SAMPLES.map((q) => (
                     <button
                       key={q}
                       onClick={() => send(q)}
-                      className="rounded-lg border border-slate-800 bg-slate-900/30 px-3 py-2 text-left text-[13px] text-slate-300 hover:border-indigo-500/40 hover:bg-slate-800/40"
+                      className="rounded-xl border bg-background px-3.5 py-2.5 text-left text-[13px] text-foreground/80 transition-colors hover:border-foreground/25 hover:bg-accent/50"
                     >
                       {q}
                     </button>
@@ -219,50 +207,51 @@ export default function App() {
             {turns.map((turn, i) =>
               turn.role === "user" ? (
                 <div key={i} className="flex justify-end">
-                  <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-indigo-600 px-4 py-2.5 text-sm text-white">
+                  <div className="max-w-[80%] rounded-3xl rounded-br-lg border bg-muted px-4 py-2.5 text-sm">
                     {turn.text}
                   </div>
                 </div>
               ) : (
-                <div key={i} className="flex justify-start">
-                  <div className="w-full max-w-[92%] rounded-2xl rounded-bl-sm border border-slate-800 bg-[#141b2e] px-4 py-3">
-                    <div className="whitespace-pre-wrap text-[14px] leading-relaxed text-slate-100">
-                      {turn.text}
-                    </div>
-                    {turn.steps && turn.steps.length > 0 && <StepBadges steps={turn.steps} />}
-                    {turn.pending?.map((pc) => (
-                      <PendingActionCard
-                        key={pc.action_id}
-                        action={pc}
-                        onConfirm={async (id) => {
-                          await api.confirm(id);
-                        }}
-                        onCancel={async (id) => {
-                          await api.cancel(id);
-                        }}
-                      />
-                    ))}
+                <div key={i} className="flex flex-col">
+                  <div className="whitespace-pre-wrap text-[14px] leading-relaxed text-foreground">
+                    {turn.text}
                   </div>
+                  {turn.steps && turn.steps.length > 0 && <StepBadges steps={turn.steps} />}
+                  {turn.pending?.map((pc) => (
+                    <PendingActionCard
+                      key={pc.action_id}
+                      action={pc}
+                      onConfirm={async (id) => {
+                        await api.confirm(id);
+                      }}
+                      onCancel={async (id) => {
+                        await api.cancel(id);
+                      }}
+                    />
+                  ))}
                 </div>
               ),
             )}
 
             {busy && (
-              <div className="flex justify-start">
-                <div className="rounded-2xl rounded-bl-sm border border-slate-800 bg-[#141b2e] px-4 py-3 text-sm text-slate-400">
-                  <span className="inline-flex gap-1 align-middle">
-                    <Dot /> <Dot /> <Dot />
-                  </span>{" "}
-                  orchestrating…
-                </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="inline-flex gap-1">
+                  <Dot /> <Dot /> <Dot />
+                </span>
+                orchestrating…
               </div>
             )}
           </div>
         </div>
 
-        <div className="border-t border-slate-800/60 px-6 py-4">
-          <div className="mx-auto flex max-w-3xl items-end gap-2">
-            <textarea
+        <div className="px-6 pb-5">
+          <div
+            className={cn(
+              "mx-auto flex max-w-3xl items-end gap-2 rounded-3xl border bg-background p-2 pl-4 shadow-sm transition-colors",
+              "focus-within:border-foreground/30",
+            )}
+          >
+            <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -274,15 +263,19 @@ export default function App() {
               rows={1}
               placeholder="Ask across Gmail, Calendar & Drive…"
               disabled={busy}
-              className="max-h-40 min-h-[44px] flex-1 resize-none rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none disabled:opacity-50"
+              className="max-h-40 min-h-[24px] flex-1 resize-none border-0 bg-transparent px-0 py-2 text-sm shadow-none focus-visible:ring-0 dark:bg-transparent"
             />
-            <button
+            <Button
+              size="icon"
               onClick={() => send(input)}
               disabled={busy || !input.trim()}
-              className="h-[44px] rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-40"
+              className="size-9 shrink-0 rounded-full"
             >
-              Send
-            </button>
+              <Send className="size-4" />
+            </Button>
+          </div>
+          <div className="mx-auto mt-2 max-w-3xl text-center text-[11px] text-muted-foreground">
+            Writes are drafted and always require your confirmation.
           </div>
         </div>
       </main>
@@ -291,5 +284,5 @@ export default function App() {
 }
 
 function Dot() {
-  return <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-slate-500" />;
+  return <span className="inline-block size-1.5 animate-pulse rounded-full bg-muted-foreground/60" />;
 }

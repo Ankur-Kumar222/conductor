@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { ShieldAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { PendingConfirmation } from "../types";
 
 const ACTION_LABEL: Record<string, string> = {
@@ -31,34 +33,31 @@ export function PendingActionCard({
   };
 
   return (
-    <div className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
-      <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-amber-300">
-        <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
-        Awaiting confirmation · {ACTION_LABEL[action.action_type] || action.action_type}
+    <div className="mt-3 rounded-xl border bg-muted/30 p-3">
+      <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <ShieldAlert className="size-3.5" />
+        Needs confirmation · {ACTION_LABEL[action.action_type] || action.action_type}
       </div>
-      <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-black/30 p-3 text-[12.5px] leading-relaxed text-slate-200">
+      <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-lg border bg-background p-3 font-sans text-[12.5px] leading-relaxed text-foreground/90">
         {action.preview}
       </pre>
       {state === "confirmed" ? (
-        <div className="mt-2 text-xs font-medium text-emerald-300">✓ Done</div>
+        <div className="mt-2 text-xs font-medium text-foreground">✓ Done</div>
       ) : state === "cancelled" ? (
-        <div className="mt-2 text-xs font-medium text-slate-400">Cancelled</div>
+        <div className="mt-2 text-xs text-muted-foreground">Cancelled</div>
       ) : (
-        <div className="mt-2 flex gap-2">
-          <button
-            disabled={state === "working"}
-            onClick={() => run(onConfirm, "confirmed")}
-            className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
-          >
+        <div className="mt-2.5 flex gap-2">
+          <Button size="sm" disabled={state === "working"} onClick={() => run(onConfirm, "confirmed")}>
             {state === "working" ? "Working…" : "Confirm"}
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
             disabled={state === "working"}
             onClick={() => run(onCancel, "cancelled")}
-            className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-700/40 disabled:opacity-50"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       )}
     </div>

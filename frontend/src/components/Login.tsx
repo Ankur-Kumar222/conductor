@@ -1,53 +1,94 @@
+import { Mail, Calendar, Folder } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { api } from "../api";
 
 export function Login() {
   return (
-    <div className="flex h-full items-center justify-center bg-[#0b0f19] px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-[#0f1424] p-8 text-center shadow-2xl">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-2xl font-bold">
-          C
+    <div className="grid h-full grid-cols-1 lg:grid-cols-2">
+      {/* form column */}
+      <div className="flex items-center justify-center px-6 py-10">
+        <div className="flex w-full max-w-[340px] flex-col">
+          <div className="mb-10 flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-foreground text-background">
+              <span className="text-base font-semibold">C</span>
+            </div>
+            <span className="text-lg font-semibold tracking-tight">Conductor</span>
+          </div>
+
+          <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Orchestrate Gmail, Calendar &amp; Drive with natural language.
+          </p>
+
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="mt-8 w-full rounded-full"
+          >
+            <a href={api.loginUrl}>
+              <GoogleMark />
+              Continue with Google
+            </a>
+          </Button>
+
+          <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
+            Grants read &amp; draft access to your Workspace. Every send, create, delete, or share
+            always requires your explicit confirmation.
+          </p>
         </div>
-        <h1 className="text-xl font-semibold text-slate-100">Conductor</h1>
-        <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-slate-400">
-          Orchestrate Gmail, Calendar &amp; Drive with natural language.
-        </p>
+      </div>
 
-        <a
-          href={api.loginUrl}
-          className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-100"
-        >
-          <GoogleIcon />
-          Sign in with Google
-        </a>
+      {/* decorative panel */}
+      <div className="relative hidden overflow-hidden bg-foreground text-background lg:flex">
+        <div
+          className="absolute inset-0 opacity-[0.06]"
+          style={{
+            backgroundImage:
+              "radial-gradient(currentColor 1px, transparent 1px)",
+            backgroundSize: "22px 22px",
+          }}
+        />
+        <div className="relative z-10 flex flex-col justify-center px-14">
+          <div className="text-4xl font-semibold leading-tight tracking-tight">
+            One prompt,
+            <br />
+            your whole Workspace.
+          </div>
+          <p className="mt-4 max-w-sm text-sm text-background/60">
+            Conductor classifies intent, plans a multi-service execution graph, and runs Gmail,
+            Calendar &amp; Drive in parallel — then answers in plain language.
+          </p>
 
-        <p className="mt-4 text-[11px] leading-relaxed text-slate-600">
-          Grants read + draft access. Every send, create, delete, or share always requires your
-          explicit confirmation.
-        </p>
+          <div className="mt-10 flex flex-col gap-3">
+            {[
+              { icon: Mail, label: "Gmail", sample: "Find emails from LinkedIn about jobs" },
+              { icon: Calendar, label: "Calendar", sample: "What's on my calendar next week?" },
+              { icon: Folder, label: "Drive", sample: "Show me PDFs from this year" },
+            ].map(({ icon: Icon, label, sample }) => (
+              <div
+                key={label}
+                className="flex items-center gap-3 rounded-2xl border border-background/15 bg-background/5 px-4 py-3"
+              >
+                <Icon className="size-4 shrink-0 text-background/70" />
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wide text-background/40">{label}</div>
+                  <div className="truncate text-sm text-background/80">{sample}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function GoogleIcon() {
+/** Monochrome Google mark (single-color, fits the black & white theme). */
+function GoogleMark() {
   return (
-    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
-      <path
-        fill="#EA4335"
-        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-      />
-      <path
-        fill="#4285F4"
-        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-      />
-      <path
-        fill="#34A853"
-        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-      />
+    <svg viewBox="0 0 24 24" className="size-4" fill="currentColor" aria-hidden>
+      <path d="M12.24 10.4v3.36h4.68c-.2 1.2-1.42 3.52-4.68 3.52-2.82 0-5.12-2.33-5.12-5.2s2.3-5.2 5.12-5.2c1.6 0 2.68.68 3.3 1.27l2.25-2.17C16.4 4.2 14.53 3.4 12.24 3.4 7.9 3.4 4.4 6.9 4.4 12s3.5 8.6 7.84 8.6c4.53 0 7.53-3.18 7.53-7.67 0-.52-.06-.9-.13-1.3l-7.4.02z" />
     </svg>
   );
 }
