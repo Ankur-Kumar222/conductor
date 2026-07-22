@@ -40,9 +40,11 @@ def _serialize(execution: ExecutionResult) -> str:
 
 
 async def synthesize(
-    query: str, intent: Intent, execution: ExecutionResult, tz_name: str = "UTC"
+    query: str, intent: Intent, execution: ExecutionResult, tz_name: str = "UTC", context: str = ""
 ) -> SynthesizedResponse:
+    convo = f"Conversation so far:\n{context}\n\n" if context else ""
     user = (
+        f"{convo}"
         f"User query: {query}\n"
         f"Intent: {intent.intent} (services={intent.services})\n"
         f"User timezone: {tz_name}\n\n"

@@ -48,14 +48,16 @@ class Orchestrator:
     def __init__(self, ctx: AgentContext):
         self.ctx = ctx
 
-    async def run(self, plan: Plan, write_handler=None) -> ExecutionResult:
+    async def run(self, plan: Plan, write_handler=None, context: str = "") -> ExecutionResult:
         result = ExecutionResult()
         for level in _topo_levels(plan.steps):
-            coros = [self._run_step(step, result, write_handler) for step in level]
+            coros = [self._run_step(step, result, write_handler, context) for step in level]
             await asyncio.gather(*coros, return_exceptions=True)
         return result
 
-    async def _run_step(self, step: PlanStep, result: ExecutionResult, write_handler) -> None:
+    async def _run_step(
+        self, step: PlanStep, result: ExecutionResult, write_handler, context: str = ""
+    ) -> None:
         sr = StepResult(
             id=step.id, service=step.service, operation=step.operation,
             description=step.description, status="ok",
@@ -86,7 +88,7 @@ class Orchestrator:
                     sr.error = "writes are handled in the write phase"
                     result.data[step.id] = {"type": "write", "status": "skipped"}
                 else:
-                    pending = await write_handler(agent, step, dep_ctx)
+                    pending = await write_handler(agent, step, dep_ctx, context)
                     result.data[step.id] = {"type": "write", "pending": pending}
                     result.pending_actions.append(pending)
                     sr.status = "pending_confirmation"

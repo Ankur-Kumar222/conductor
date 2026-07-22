@@ -19,10 +19,14 @@ from app.orchestrator import llm
 from app.orchestrator.agents import AGENTS, AgentContext
 from app.schemas import EmailDraftSpec, EventChangeSpec, FileShareSpec, PlanStep
 
-EMAIL_SYS = """You draft an email for the user based on the instruction and the gathered \
-context (emails/events/files found by prior steps). Infer the correct recipient from context \
-when possible (e.g. an airline support address, a sender to reply to). Write a complete, polite, \
-ready-to-send email. If the recipient truly cannot be determined, leave 'to' empty."""
+EMAIL_SYS = """You draft an email for the user based on the instruction, the conversation so far, \
+and the content gathered this turn (emails/events/files found by prior steps). References like \
+"that", "it", or "the doc" refer to items discussed earlier in the conversation — use the \
+conversation context to resolve them and pull the actual content into the email body. Infer the \
+correct recipient from context when possible (e.g. an airline support address, a sender to reply \
+to). Write a complete, polite, ready-to-send email grounded in the real content — never invent \
+details or leave placeholders like [TBD]. If you genuinely have no content to summarize, say so \
+briefly in the body rather than fabricating. If the recipient cannot be determined, leave 'to' empty."""
 
 EVENT_SYS = """You specify a calendar change from the instruction + context. For update/delete, \
 set event_id from the context's top event. Use ISO8601 for start/end in the user's timezone. \
@@ -36,14 +40,17 @@ def _ctx_json(dep_ctx: list[dict]) -> str:
     return json.dumps(dep_ctx, default=str)[:8000]
 
 
-async def write_handler(agent, step: PlanStep, dep_ctx: list[dict]) -> dict:
+async def write_handler(agent, step: PlanStep, dep_ctx: list[dict], context: str = "") -> dict:
     op = step.operation
     ctx_text = _ctx_json(dep_ctx)
+    convo = f"Conversation so far:\n{context}\n\n" if context else ""
     user: User = agent.ctx.user
 
     if op in ("draft_email", "send_email"):
         spec = await llm.structured_async(
-            EMAIL_SYS, f"Instruction: {step.query}\n\nContext:\n{ctx_text}", EmailDraftSpec
+            EMAIL_SYS,
+            f"{convo}Instruction: {step.query}\n\nContent gathered this turn:\n{ctx_text}",
+            EmailDraftSpec,
         )
         draft_id = await agent.create_draft(spec.to, spec.subject, spec.body)
         payload = {"draft_id": draft_id, "to": spec.to, "subject": spec.subject, "body": spec.body}
@@ -53,7 +60,8 @@ async def write_handler(agent, step: PlanStep, dep_ctx: list[dict]) -> dict:
     elif op in ("create_event", "update_event", "delete_event"):
         spec = await llm.structured_async(
             EVENT_SYS,
-            f"Operation: {op}\nInstruction: {step.query}\nUser timezone: {user.timezone}\n\nContext:\n{ctx_text}",
+            f"{convo}Operation: {op}\nInstruction: {step.query}\nUser timezone: {user.timezone}\n\n"
+            f"Content gathered this turn:\n{ctx_text}",
             EventChangeSpec,
         )
         payload = {
@@ -66,7 +74,7 @@ async def write_handler(agent, step: PlanStep, dep_ctx: list[dict]) -> dict:
 
     elif op == "share_file":
         spec = await llm.structured_async(
-            SHARE_SYS, f"Instruction: {step.query}\n\nContext:\n{ctx_text}", FileShareSpec
+            SHARE_SYS, f"{convo}Instruction: {step.query}\n\nContent gathered this turn:\n{ctx_text}", FileShareSpec
         )
         payload = {"file_id": spec.file_id, "email": spec.email, "role": spec.role or "reader"}
         preview = f"Share file {spec.file_id} with {spec.email} as {spec.role or 'reader'}"

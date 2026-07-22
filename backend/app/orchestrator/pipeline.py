@@ -57,7 +57,9 @@ async def _chat_context(session: AsyncSession, chat_id: uuid.UUID) -> str:
     lines = ["Conversation so far (most recent last):"]
     for m in reversed(rows):
         who = "User" if m.role == "user" else "Conductor"
-        lines.append(f"- {who}: {m.content[:300]}")
+        # keep enough of each turn that a prior summary/answer survives for
+        # follow-ups like "email that" without bloating the prompt
+        lines.append(f"- {who}: {m.content[:1500]}")
     return "\n".join(lines)
 
 
@@ -90,10 +92,10 @@ async def run_query(
 
     ctx = AgentContext(SessionLocal, user)
     orchestrator = Orchestrator(ctx)
-    execution = await orchestrator.run(plan, write_handler=write_handler)
+    execution = await orchestrator.run(plan, write_handler=write_handler, context=context)
 
     synth: SynthesizedResponse = await synth_mod.synthesize(
-        query, intent, execution, tz_name=user.timezone or "UTC"
+        query, intent, execution, tz_name=user.timezone or "UTC", context=context
     )
 
     pending = [
