@@ -55,19 +55,41 @@ export default function App() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [turns, busy]);
 
-  const refreshSync = () => api.syncStatus().then(setSync).catch(() => {});
   const refreshChats = () => api.listChats().then(setChats).catch(() => {});
 
   const doSync = async () => {
     setSyncing(true);
+    const startedAt = Date.now() - 3000; // small buffer for clock skew
     toast("Syncing your Workspace…", { description: "Indexing Gmail, Calendar & Drive." });
     try {
       await api.triggerSync();
-      for (let i = 0; i < 12; i++) {
+      const keys = ["gmail", "gcal", "drive"];
+      let done = false;
+      let last: SyncStatus | null = null;
+      // Poll until every service finishes (fresh timestamp) or errors — up to ~4 min.
+      for (let i = 0; i < 96 && !done; i++) {
         await new Promise((r) => setTimeout(r, 2500));
-        await refreshSync();
+        try {
+          last = await api.syncStatus();
+          setSync(last);
+        } catch {
+          continue;
+        }
+        done = keys.every((k) => {
+          const st = last?.services?.[k];
+          if (!st) return false;
+          if (st.status === "error") return true;
+          return (
+            st.status !== "syncing" &&
+            !!st.last_synced_at &&
+            new Date(st.last_synced_at).getTime() >= startedAt
+          );
+        });
       }
-      toast.success("Sync complete");
+      const anyError = keys.some((k) => last?.services?.[k]?.status === "error");
+      if (done && !anyError) toast.success("Sync complete");
+      else if (done) toast.error("Sync finished with errors", { description: "Check per-service status." });
+      else toast("Sync is taking a while", { description: "Still running in the background." });
     } finally {
       setSyncing(false);
     }
