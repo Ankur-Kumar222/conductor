@@ -102,6 +102,7 @@ export default function App() {
     const short = title.length > 40 ? title.slice(0, 40) + "…" : title;
     toast("Delete chat?", {
       description: `"${short}" — this can't be undone.`,
+      position: "top-center",
       action: { label: "Delete", onClick: () => doDeleteChat(id) },
       cancel: { label: "Cancel", onClick: () => {} },
     });
@@ -140,7 +141,16 @@ export default function App() {
     }
   };
 
-  const onLogout = async () => {
+  const requestLogout = () => {
+    toast("Log out?", {
+      description: `You'll need to reconnect ${me?.email || "your account"} to continue.`,
+      position: "top-center",
+      action: { label: "Log out", onClick: () => doLogout() },
+      cancel: { label: "Cancel", onClick: () => {} },
+    });
+  };
+
+  const doLogout = async () => {
     await api.logout();
     setMe(null);
     setSync(null);
@@ -165,7 +175,7 @@ export default function App() {
         sync={sync}
         syncing={syncing}
         onSync={doSync}
-        onLogout={onLogout}
+        onLogout={requestLogout}
         chats={chats}
         currentChatId={currentChatId}
         onNewChat={newChat}
